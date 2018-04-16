@@ -457,7 +457,7 @@ public class DatabaseOperations {
 
 			ResultSet results = stmt.executeQuery(instruction);
 
-			while (results.next()) {
+			if (results.next()) {
 
 				clienteRetonar.setId(results.getInt(1));
 				clienteRetonar.setNome(results.getString(3));
@@ -484,6 +484,54 @@ public class DatabaseOperations {
 
 	}
 
+	public static Cliente[] retrieveClientesByAgencia(int numeroAgencia) {
+
+		createConnection();
+
+		String tableName = "BANCORETALHOSCHEMA.CLIENTES";
+
+		ArrayList<Cliente> clientesRetonar = new ArrayList<Cliente>();
+
+		try {
+
+			stmt = conn.createStatement();
+
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_AGENCIA = " + numeroAgencia;
+
+			ResultSet results = stmt.executeQuery(instruction);
+
+			while (results.next()) {
+
+				Cliente clienteRetornar = new Cliente();
+				
+				clienteRetornar.setId(results.getInt(1));
+				clienteRetornar.setNome(results.getString(3));
+				clienteRetornar.setNumeroCartaoCidadao(results.getInt(4));
+				clienteRetornar.setProfissao(results.getString(5));
+				clienteRetornar.setMorada(retrieveMoradaById(results.getInt(6), false));
+				clienteRetornar.setEmails(retrieveEmails("Cliente",
+						results.getInt(1)));
+				clienteRetornar.setContas(retrieveContasCliente(results
+						.getInt(1)));
+				clienteRetornar.setTelefones(retrieveTelefonesByCliente(
+						"CLIENTE", results.getInt(1)));
+				
+				clientesRetonar.add(clienteRetornar);
+			}
+
+			stmt.close();
+
+		} catch (SQLException sqlExcept) {
+			sqlExcept.printStackTrace();
+		}
+
+		shutdown();
+
+		return (Cliente[]) clientesRetonar.toArray(new Cliente[1]);
+
+	}	
+	
 	public static void insertConta(int idCliente, String tipo, int dataAbertura) {
 
 		createConnection();
