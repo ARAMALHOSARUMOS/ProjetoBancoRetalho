@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 
 import com.rumos.bancoretalho.impl.Agencia;
 import com.rumos.bancoretalho.impl.Banco;
@@ -95,7 +96,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static boolean insertMorada(String rua, String localidade,String  codigoPostal, String pais){
+	public static boolean insertMorada(String rua, String localidade,
+			String codigoPostal, String pais) {
 
 		createConnection();
 
@@ -107,7 +109,8 @@ public class DatabaseOperations {
 
 			String instruction = "INSERT INTO " + tableName
 					+ " (RUA, LOCALIDADE, CODIGO_POSTAL, PAIS) values ('" + rua
-					+ "', '" + localidade + "', '" + codigoPostal + "', '" + pais + "')";
+					+ "', '" + localidade + "', '" + codigoPostal + "', '"
+					+ pais + "')";
 
 			stmt.execute(instruction);
 
@@ -122,7 +125,7 @@ public class DatabaseOperations {
 		return true;
 
 	}
-	
+
 	public static Banco retrieveBancoByNome(String nome) {
 
 		createConnection();
@@ -176,8 +179,8 @@ public class DatabaseOperations {
 
 			while (results.next()) {
 				agenciasRetornar.add(new Agencia(results.getInt(1), results
-						.getString(3), results.getInt(4),
-						retrieveMoradaById(results.getInt(5), false)));
+						.getString(3), results.getInt(4), retrieveMoradaById(
+						results.getInt(5), false)));
 			}
 
 			stmt.close();
@@ -191,10 +194,13 @@ public class DatabaseOperations {
 		return (Agencia[]) agenciasRetornar.toArray(new Agencia[1]);
 
 	}
-	
-	public static Agencia retrieveAgenciaById(int codigoAgencia) {
 
-		createConnection();
+	public static Agencia retrieveAgenciaById(int codigoAgencia,
+			boolean criarConexao) {
+
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.AGENCIAS";
 
@@ -220,12 +226,53 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return agenciaRetornar;
 
 	}
-	
+
+	public static Agencia retrieveAgenciaByClienteId(int codigoCliente,
+			boolean criarConexao) {
+
+		if (criarConexao) {
+			createConnection();
+		}
+
+		String tableName = "BANCORETALHOSCHEMA.CLIENTES";
+
+		Agencia agenciaRetornar = new Agencia();
+
+		try {
+			stmt = conn.createStatement();
+
+			String instruction = "SELECT ID_AGENCIA FROM "
+					+ tableName.toUpperCase() + " WHERE ID = " + codigoCliente;
+
+			ResultSet results = stmt.executeQuery(instruction);
+
+			if (results.next()) {
+
+				agenciaRetornar = retrieveAgenciaById(results.getInt(1), false);
+
+			}
+
+			stmt.close();
+
+		} catch (SQLException sqlExcept) {
+			sqlExcept.printStackTrace();
+		}
+
+		if (criarConexao) {
+			shutdown();
+		}
+
+		return agenciaRetornar;
+
+	}
+
 	public static int retrieveMorada(String rua, String localidade,
 			String codigoPostal, String pais) {
 
@@ -349,9 +396,12 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static Email[] retrieveEmails(String tipoEntidade, int idEntidade) {
+	public static Email[] retrieveEmails(String tipoEntidade, int idEntidade,
+			boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.EMAILS";
 
@@ -378,7 +428,9 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return (Email[]) emailsRetornar.toArray(new Email[1]);
 
@@ -463,13 +515,14 @@ public class DatabaseOperations {
 				clienteRetonar.setNome(results.getString(3));
 				clienteRetonar.setNumeroCartaoCidadao(results.getInt(4));
 				clienteRetonar.setProfissao(results.getString(5));
-				clienteRetonar.setMorada(retrieveMoradaById(results.getInt(6), false));
+				clienteRetonar.setMorada(retrieveMoradaById(results.getInt(6),
+						false));
 				clienteRetonar.setEmails(retrieveEmails("Cliente",
-						results.getInt(1)));
-				clienteRetonar.setContas(retrieveContasCliente(results
-						.getInt(1)));
+						results.getInt(1), false));
+				clienteRetonar.setContas(retrieveContasCliente(
+						results.getInt(1), false));
 				clienteRetonar.setTelefones(retrieveTelefonesByCliente(
-						"CLIENTE", results.getInt(1)));
+						"CLIENTE", results.getInt(1), false));
 			}
 
 			stmt.close();
@@ -504,19 +557,20 @@ public class DatabaseOperations {
 			while (results.next()) {
 
 				Cliente clienteRetornar = new Cliente();
-				
+
 				clienteRetornar.setId(results.getInt(1));
 				clienteRetornar.setNome(results.getString(3));
 				clienteRetornar.setNumeroCartaoCidadao(results.getInt(4));
 				clienteRetornar.setProfissao(results.getString(5));
-				clienteRetornar.setMorada(retrieveMoradaById(results.getInt(6), false));
+				clienteRetornar.setMorada(retrieveMoradaById(results.getInt(6),
+						false));
 				clienteRetornar.setEmails(retrieveEmails("Cliente",
-						results.getInt(1)));
-				clienteRetornar.setContas(retrieveContasCliente(results
-						.getInt(1)));
+						results.getInt(1), false));
+				clienteRetornar.setContas(retrieveContasCliente(
+						results.getInt(1), false));
 				clienteRetornar.setTelefones(retrieveTelefonesByCliente(
-						"CLIENTE", results.getInt(1)));
-				
+						"CLIENTE", results.getInt(1), false));
+
 				clientesRetonar.add(clienteRetornar);
 			}
 
@@ -530,8 +584,8 @@ public class DatabaseOperations {
 
 		return (Cliente[]) clientesRetonar.toArray(new Cliente[1]);
 
-	}	
-	
+	}
+
 	public static void insertConta(int idCliente, String tipo, int dataAbertura) {
 
 		createConnection();
@@ -555,9 +609,12 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static Conta[] retrieveContasCliente(int numeroCliente) {
+	public static Conta[] retrieveContasCliente(int numeroCliente,
+			boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.CONTAS";
 
@@ -574,17 +631,17 @@ public class DatabaseOperations {
 
 			while (results.next()) {
 
-				Integer value = results.getInt(6);
+				Integer value = results.getInt(4);
 				int year = value / 10000;
 				int month = (value % 10000) / 100;
 				int day = value % 100;
 
 				Conta novaConta = new Conta(results.getLong(1),
-						retrieveCartoesByConta(results.getInt(1)),
-						results.getString(3),
-						retrieveMovimentosConta(results.getInt(1)),
-						retrieveSaldoConta(results.getInt(1)), LocalDate.of(
-								year, month, day));
+						retrieveCartoesByConta(results.getInt(1), false),
+						results.getString(3), retrieveMovimentosConta(
+								results.getInt(1), false), retrieveSaldoConta(
+								results.getInt(1), false), LocalDate.of(year,
+								month, day));
 
 				listaContas.add(novaConta);
 
@@ -596,13 +653,61 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return (Conta[]) listaContas.toArray(new Conta[1]);
 
 	}
 
-	public static int retrieveContaOrdemCliente(int numeroCliente) {
+	public static Conta retrieveContaOrdemCliente(int numeroCliente) {
+
+		createConnection();
+
+		String tableName = "BANCORETALHOSCHEMA.CONTAS";
+
+		Conta contaRetornar = new Conta();
+
+		try {
+
+			stmt = conn.createStatement();
+
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_CLIENTE = " + numeroCliente
+					+ " AND TIPO = 'ORDEM'";
+
+			ResultSet results = stmt.executeQuery(instruction);
+
+			if (results.next()) {
+
+				Integer value = results.getInt(4);
+				int year = value / 10000;
+				int month = (value % 10000) / 100;
+				int day = value % 100;
+
+				contaRetornar = new Conta(results.getLong(1),
+						retrieveCartoesByConta(results.getInt(1), false),
+						results.getString(3), retrieveMovimentosConta(
+								results.getInt(1), false), retrieveSaldoConta(
+								results.getInt(1), false), LocalDate.of(year,
+								month, day));
+
+			}
+
+			stmt.close();
+
+		} catch (SQLException sqlExcept) {
+			sqlExcept.printStackTrace();
+		}
+
+		shutdown();
+
+		return contaRetornar;
+
+	}
+
+	public static int retrieveIDContaOrdemCliente(int numeroCliente) {
 
 		createConnection();
 
@@ -615,7 +720,8 @@ public class DatabaseOperations {
 			stmt = conn.createStatement();
 
 			String instruction = "SELECT ID FROM " + tableName.toUpperCase()
-					+ " WHERE ID_CLIENTE = " + numeroCliente + " AND TIPO = 'ORDEM'";
+					+ " WHERE ID_CLIENTE = " + numeroCliente
+					+ " AND TIPO = 'ORDEM'";
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -635,11 +741,14 @@ public class DatabaseOperations {
 
 		return contaRetornar;
 
-	}	
-	
-	public static Cartao[] retrieveCartoesByConta(int numeroConta) {
+	}
 
-		createConnection();
+	public static Cartao[] retrieveCartoesByConta(int numeroConta,
+			boolean criarConexao) {
+
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.CARTOES";
 
@@ -667,15 +776,19 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return (Cartao[]) listaCartoes.toArray(new Cartao[1]);
 
 	}
 
-	public static Cartao retrieveCartaoById(int idCartao) {
+	public static Cartao retrieveCartaoById(int idCartao, boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.CARTOES";
 
@@ -704,16 +817,20 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return novoCartao;
 
 	}
 
 	public static Telefone[] retrieveTelefonesByCliente(String tipoEntidade,
-			int idEntidade) {
+			int idEntidade, boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.TELEFONES";
 
@@ -724,8 +841,8 @@ public class DatabaseOperations {
 			stmt = conn.createStatement();
 
 			String instruction = "SELECT ID, NUMERO FROM "
-					+ tableName.toUpperCase() + " WHERE TIPO = " + tipoEntidade
-					+ " AND ID_ENTIDADE = " + idEntidade;
+					+ tableName.toUpperCase() + " WHERE TIPOENTIDADE = '"
+					+ tipoEntidade + "' AND ID_ENTIDADE = " + idEntidade;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -742,7 +859,9 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return (Telefone[]) listaTelefones.toArray(new Telefone[1]);
 	}
@@ -769,7 +888,7 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static void insertMovimento(int idConta, int idCartao, String tipo,
+	public static void insertMovimento(long idConta, long idCartao, String tipo,
 			long valor) {
 
 		createConnection();
@@ -778,11 +897,15 @@ public class DatabaseOperations {
 
 		try {
 			stmt = conn.createStatement();
+			
+			int data = LocalDate.now().getYear()*10000+LocalDate.now().getMonthValue()*100+LocalDate.now().getDayOfMonth();
+			
+			int hora = LocalTime.now().getHour()*10000+LocalTime.now().getMinute()*100+LocalTime.now().getSecond();
 
 			String instruction = "INSERT INTO " + tableName
-					+ " (ID_CONTA, ID_CARTAO, TIPO, VALOR) values (" + idConta
+					+ " (ID_CONTA, ID_CARTAO, TIPO, VALOR, DATA, HORA) values (" + idConta
 					+ ", " + idCartao + ", '" + tipo.toUpperCase() + "', "
-					+ valor + ")";
+					+ valor + "," + data + "," + hora + ")";
 
 			stmt.execute(instruction);
 
@@ -793,9 +916,12 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static Movimento[] retrieveMovimentosConta(int numeroConta) {
+	public static Movimento[] retrieveMovimentosConta(int numeroConta,
+			boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.MOVIMENTOS";
 
@@ -826,8 +952,8 @@ public class DatabaseOperations {
 
 					Levantamento novoLevantamento = new Levantamento(
 							LocalDate.of(year, month, day), LocalTime.of(hour,
-									minute, second),
-							retrieveCartaoById(results.getInt(3)),
+									minute, second), retrieveCartaoById(
+									results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novoLevantamento);
@@ -836,7 +962,7 @@ public class DatabaseOperations {
 
 					Deposito novoDeposito = new Deposito(LocalDate.of(year,
 							month, day), LocalTime.of(hour, minute, second),
-							retrieveCartaoById(results.getInt(3)),
+							retrieveCartaoById(results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novoDeposito);
@@ -845,8 +971,8 @@ public class DatabaseOperations {
 
 					Transferencia novaTransferencia = new Transferencia(
 							LocalDate.of(year, month, day), LocalTime.of(hour,
-									minute, second),
-							retrieveCartaoById(results.getInt(3)),
+									minute, second), retrieveCartaoById(
+									results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novaTransferencia);
@@ -855,8 +981,8 @@ public class DatabaseOperations {
 
 					Juros novosJuros = new Juros(
 							LocalDate.of(year, month, day), LocalTime.of(hour,
-									minute, second),
-							retrieveCartaoById(results.getInt(3)),
+									minute, second), retrieveCartaoById(
+									results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novosJuros);
@@ -870,15 +996,19 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return (Movimento[]) listaMovimentos.toArray(new Movimento[1]);
 
 	}
 
-	public static int retrieveSaldoConta(int numeroConta) {
+	public static int retrieveSaldoConta(int numeroConta, boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.MOVIMENTOS";
 
@@ -903,7 +1033,9 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
 		return saldo;
 	}

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import com.rumos.bancoretalho.db.DatabaseOperations;
 import com.rumos.bancoretalho.exceptions.ContaException;
 
 public class Conta {
@@ -101,21 +102,22 @@ public class Conta {
 
 		listaMovimento.add(novoMovimento);
 		
-		//TODO guardar movimento na base de dados!
+		String tipoMovimento = "";
 		
-		setMovimentos((Movimento[])listaMovimento.toArray());
+		if (novoMovimento instanceof Deposito){
+			tipoMovimento = "Deposito";
+		} else if (novoMovimento instanceof Levantamento) {
+			tipoMovimento = "Levantamento";
+		} else if (novoMovimento instanceof Transferencia){
+			tipoMovimento = "Transferencia";
+		} else if (novoMovimento instanceof Juros){
+			tipoMovimento = "Juros";
+		}
+		
+		DatabaseOperations.insertMovimento(getNumero(), novoMovimento.getCartao().getNumero(), tipoMovimento, novoMovimento.getValor());
+		
+		setMovimentos((Movimento[]) listaMovimento.toArray(new Movimento[1]));
 	}
 
-	public boolean saveDB() throws ContaException {
-		// TODO Guardar nova conta na base de dados!
-
-		return true;
-	}
-
-	public void getContaByNumero(long numero) throws ContaException {
-
-		// Obter conta pelo numero!
-
-	}
 
 }

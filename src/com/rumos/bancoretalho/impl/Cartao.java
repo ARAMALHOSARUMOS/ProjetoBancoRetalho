@@ -1,10 +1,11 @@
 package com.rumos.bancoretalho.impl;
 
+import com.rumos.bancoretalho.db.DatabaseOperations;
 import com.rumos.bancoretalho.exceptions.CartaoException;
 
 public class Cartao {
 	
-	private long numero;
+	private int numero;
 	private String tipo;
 	
 	public Cartao(){
@@ -21,17 +22,17 @@ public class Cartao {
 		
 	}
 
-	public Cartao(long numero, String tipo) {
+	public Cartao(int numero, String tipo) {
 		super();
 		this.numero = numero;
 		this.tipo = tipo;
 	}
 
-	public long getNumero() {
+	public int getNumero() {
 		return numero;
 	}
 
-	public void setNumero(long numero) {
+	public void setNumero(int numero) {
 		this.numero = numero;
 	}
 
@@ -42,13 +43,7 @@ public class Cartao {
 	public void setTipo(String tipo) {
 		this.tipo = tipo;
 	}
-	
-	public void getCartaoByNumero(long numero) throws CartaoException{
 		
-		//TODO obter cartao na DB pelo numero
-	}
-	
-	
 	public boolean saveDB() throws CartaoException {
 		//TODO guardar na base de dados!
 		

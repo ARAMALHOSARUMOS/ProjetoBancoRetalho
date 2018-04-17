@@ -126,7 +126,7 @@ public class Agencia {
 			
 			DatabaseOperations.insertConta(cliente.getId(), "ORDEM", ano*10000+mes*100+dia);
 		
-			int idConta = DatabaseOperations.retrieveContaOrdemCliente(cliente.getId());
+			int idConta = DatabaseOperations.retrieveIDContaOrdemCliente(cliente.getId());
 			
 			DatabaseOperations.insertCartao(idConta, "DEBITO");
 		
@@ -138,11 +138,8 @@ public class Agencia {
 
 	}
 
-	public void criarCartao(long numeroConta, String tipo)
+	public void criarCartao(Conta contaCliente, String tipo)
 			throws ContaException, CartaoException {
-
-		Conta contaCliente = new Conta();
-		contaCliente.getContaByNumero(numeroConta);
 
 		ArrayList<Cartao> cartaoList = new ArrayList<Cartao>(
 				Arrays.asList(contaCliente.getCartoes()));
@@ -161,24 +158,11 @@ public class Agencia {
 
 	}
 
-	public void criarMovimento(long numeroConta, long numeroCartao,
-			String tipo, long valor, long numeroContaDestino)
+	public void criarMovimento(Conta contaCliente, Cartao cartaoCliente,
+			String tipo, long valor, Conta contaDestino)
 			throws ContaException, CartaoException {
 
-		Conta contaCliente = new Conta();
-
-		Cartao cartaoCliente = new Cartao();
-
-		if (numeroCartao > 0) {
-			cartaoCliente.getCartaoByNumero(numeroCartao);
-		}
-
-		contaCliente.getContaByNumero(numeroConta);
-
 		if (tipo.equals("Transferencia")) {
-
-			Conta contaDestino = new Conta();
-			contaDestino.getContaByNumero(numeroContaDestino);
 
 			if (contaCliente.getSaldo() < valor) {
 				throw new ContaException(
@@ -199,7 +183,7 @@ public class Agencia {
 						"O seu saldo não é suficiente para processar o movimento");
 			} else {
 				Levantamento novoLevantamwnto = new Levantamento(
-						LocalDate.now(), LocalTime.now(), cartaoCliente, valor);
+						LocalDate.now(), LocalTime.now(), cartaoCliente, valor*-1);
 				contaCliente.setSaldo(contaCliente.getSaldo() - valor);
 				contaCliente.addMovimento(novoLevantamwnto);
 			}
