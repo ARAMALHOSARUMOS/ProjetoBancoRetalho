@@ -5,6 +5,9 @@ import com.rumos.bancoretalho.exceptions.CartaoException;
 
 public class Cartao {
 	
+	public static final String CONST_CARTAO_CREDITO = "CREDITO";
+	public static final String CONST_CARTAO_DEBITO = "DEBITO";
+	
 	private int numero;
 	private String tipo;
 	

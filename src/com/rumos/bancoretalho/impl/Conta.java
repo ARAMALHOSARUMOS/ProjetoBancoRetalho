@@ -8,6 +8,11 @@ import com.rumos.bancoretalho.db.DatabaseOperations;
 import com.rumos.bancoretalho.exceptions.ContaException;
 
 public class Conta {
+	
+	public static final String CONST_CONTA_ORDEM = "ORDEM";
+	public static final String CONST_CONTA_PRAZO = "PRAZO";
+	public static final String CONST_CONTA_POUPANCA = "POUPANCA";
+	public static final String CONST_CONTA_INVESTIMENTO= "INVESTIMENTO";
 
 	private long numero;
 	private Cartao[] cartoes;
@@ -20,16 +25,6 @@ public class Conta {
 		super();
 		this.tipoConta = "";
 		this.numero = 0;
-		this.cartoes = null;
-		this.dataAbertura = LocalDate.now();
-		this.movimentos = null;
-		this.saldo = 0;
-	}
-
-	public Conta(String tipoConta) {
-		super();
-		this.tipoConta = tipoConta;
-		// TODO Obter proximo numero conta
 		this.cartoes = null;
 		this.dataAbertura = LocalDate.now();
 		this.movimentos = null;

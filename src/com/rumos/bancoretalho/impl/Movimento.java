@@ -6,6 +6,11 @@ import java.time.LocalTime;
 
 public abstract class Movimento {
 	
+	public static final String CONST_TRANSFERENCIA = "Transferencia";
+	public static final String CONST_LEVANTAMENTO = "Levantamento";
+	public static final String CONST_DEPOSITO = "Deposito";
+	public static final String CONST_JUROS = "Juros";
+	
 	private LocalDate data;
 	private LocalTime hora;
 	private Cartao cartao;
