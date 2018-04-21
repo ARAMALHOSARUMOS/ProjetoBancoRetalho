@@ -9,7 +9,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 
 import com.rumos.bancoretalho.impl.Agencia;
 import com.rumos.bancoretalho.impl.Banco;
@@ -30,9 +29,8 @@ public class DatabaseOperations {
 	// JDBC driver name and database URL
 	// static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
 	static final String JDBC_DRIVER = "org.apache.derby.jdbc.ClientDriver";
-	// static final String DB_URL =
-	// "jdbc:derby://localhost:1527/BancoRetalho;create=true";
-	static final String DB_URL = "jdbc:derby:C:/BancoRetalho2;create=true";
+	static final String DB_URL = "jdbc:derby://localhost:1527/BancoRetalho;create=true";
+	// static final String DB_URL = "jdbc:derby:C:/BancoRetalho2;create=true";
 
 	// Database credentials
 	static final String USER = "user";
@@ -69,17 +67,18 @@ public class DatabaseOperations {
 
 		// insertAgencia("Agencia 321", 1, 123123123, 1);
 
-		ArrayList<Agencia> x = new ArrayList<Agencia>();
-
-		x = new ArrayList<Agencia>(Arrays.asList(retrieveAgenciasByBanco(1)));
-
-		for (int i = 0; i < x.size(); i++) {
-			System.out.println(x.get(i).getNome());
-		}
+		// ArrayList<Agencia> x = new ArrayList<Agencia>();
+		//
+		// x = new ArrayList<Agencia>(Arrays.asList(retrieveAgenciasByBanco(1,
+		// true)));
+		//
+		// for (int i = 0; i < x.size(); i++) {
+		// System.out.println(x.get(i).getNome());
+		// }
 
 	}
 
-	public static void insertBanco(String nome, int nif) {
+	public static void insertBanco(String nome, int nif, float juros) {
 
 		createConnection();
 
@@ -87,7 +86,9 @@ public class DatabaseOperations {
 
 		try {
 			stmt = conn.createStatement();
-			stmt.execute("INSERT INTO " + tablename + " (NOME, NIF) values ('" + nome.toUpperCase() + "'," + nif + ")");
+			stmt.execute("INSERT INTO " + tablename
+					+ " (NOME, NIF, VAL_JUROS) values ('" + nome.toUpperCase()
+					+ "'," + nif + "," + juros + ")");
 			stmt.close();
 		} catch (SQLException sqlExcept) {
 			sqlExcept.printStackTrace();
@@ -97,7 +98,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static boolean insertMorada(String rua, String localidade, String codigoPostal, String pais) {
+	public static boolean insertMorada(String rua, String localidade,
+			String codigoPostal, String pais) {
 
 		createConnection();
 
@@ -107,8 +109,10 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName + " (RUA, LOCALIDADE, CODIGO_POSTAL, PAIS) values ('" + rua
-					+ "', '" + localidade + "', '" + codigoPostal + "', '" + pais + "')";
+			String instruction = "INSERT INTO " + tableName
+					+ " (RUA, LOCALIDADE, CODIGO_POSTAL, PAIS) values ('" + rua
+					+ "', '" + localidade + "', '" + codigoPostal + "', '"
+					+ pais + "')";
 
 			stmt.execute(instruction);
 
@@ -135,15 +139,17 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE NOME = '" + nome.toUpperCase()
-					+ "'";
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE NOME = '" + nome.toUpperCase() + "'";
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			if (results.next()) {
 
-				bancoRetornar = new Banco(results.getInt(1), results.getString(2),
-						retrieveAgenciasByBanco(results.getInt(1)));
+				bancoRetornar = new Banco(results.getInt(1),
+						results.getString(2),
+						retrieveAgenciasByBanco(results.getInt(1), false),
+						results.getFloat(4), results.getInt(5));
 			}
 
 			stmt.close();
@@ -158,24 +164,29 @@ public class DatabaseOperations {
 
 	}
 
-	public static Agencia[] retrieveAgenciasByBanco(int codigoBanco) {
+	public static Banco[] retrieveBancos() {
 
 		createConnection();
 
-		String tableName = "BANCORETALHOSCHEMA.AGENCIAS";
+		String tableName = "BANCORETALHOSCHEMA.BANCO";
 
-		ArrayList<Agencia> agenciasRetornar = new ArrayList<Agencia>();
+		ArrayList<Banco> bancosRetornar = new ArrayList<Banco>();
 
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID_BANCO = " + codigoBanco;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase();
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			while (results.next()) {
-				agenciasRetornar.add(new Agencia(results.getInt(1), results.getString(3), results.getInt(4),
-						retrieveMoradaById(results.getInt(5), false)));
+
+				Banco bancoRetornar = new Banco(results.getInt(1),
+						results.getString(2),
+						retrieveAgenciasByBanco(results.getInt(1), false),
+						results.getFloat(4), results.getInt(5));
+
+				bancosRetornar.add(bancoRetornar);
 			}
 
 			stmt.close();
@@ -186,11 +197,118 @@ public class DatabaseOperations {
 
 		shutdown();
 
-		return (Agencia[]) agenciasRetornar.toArray(new Agencia[1]);
+		return (Banco[]) bancosRetornar.toArray(new Banco[0]);
 
 	}
 
-	public static Agencia retrieveAgenciaById(int codigoAgencia, boolean criarConexao) {
+	public static boolean updatePeriodoBanco(Banco banco, boolean criarConexao) {
+
+		if (criarConexao) {
+			createConnection();
+		}
+
+		String tableName = "BANCORETALHOSCHEMA.BANCO";
+
+		try {
+			stmt = conn.createStatement();
+
+			String instruction = "UPDATE " + tableName.toUpperCase()
+					+ " SET PERIODO = " + banco.getPeriodo() + " WHERE ID = "
+					+ banco.getId();
+
+			stmt.executeUpdate(instruction);
+
+			stmt.close();
+
+		} catch (SQLException sqlExcept) {
+			sqlExcept.printStackTrace();
+		}
+
+		if (criarConexao) {
+			shutdown();
+		}
+
+		return true;
+
+	}
+
+	public static boolean updatePlafondCartao(Cartao cartao,
+			boolean criarConexao) {
+
+		if (criarConexao) {
+			createConnection();
+		}
+
+		String tableName = "BANCORETALHOSCHEMA.CARTOES";
+
+		try {
+			stmt = conn.createStatement();
+
+			String instruction = "UPDATE " + tableName.toUpperCase()
+					+ " SET VALOR_PLAFOND = " + cartao.getValorPlafond()
+					+ " WHERE ID = " + cartao.getNumero();
+
+			stmt.executeUpdate(instruction);
+
+			stmt.close();
+
+		} catch (SQLException sqlExcept) {
+			sqlExcept.printStackTrace();
+		}
+
+		if (criarConexao) {
+			shutdown();
+		}
+
+		return true;
+
+	}
+
+	public static Agencia[] retrieveAgenciasByBanco(int codigoBanco,
+			boolean criarConexao) {
+
+		if (criarConexao) {
+			createConnection();
+		}
+
+		String tableName = "BANCORETALHOSCHEMA.AGENCIAS";
+
+		ArrayList<Agencia> agenciasRetornar = new ArrayList<Agencia>();
+
+		try {
+			stmt = conn.createStatement();
+
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_BANCO = " + codigoBanco;
+
+			ResultSet results = stmt.executeQuery(instruction);
+
+			while (results.next()) {
+
+				Cliente[] clientesAgencia = retrieveClientesByAgencia(
+						results.getInt(1), false);
+
+				agenciasRetornar.add(new Agencia(results.getInt(1), results
+						.getString(3), results.getInt(4), retrieveMoradaById(
+						results.getInt(5), false), clientesAgencia));
+			}
+
+			stmt.close();
+
+		} catch (SQLException sqlExcept) {
+			sqlExcept.printStackTrace();
+		}
+
+		if (criarConexao) {
+			shutdown();
+		}
+
+		return (Agencia[]) agenciasRetornar.toArray(new Agencia[0]);
+
+	}
+
+	public static Agencia retrieveAgenciaById(int codigoAgencia,
+			boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -203,13 +321,20 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID = " + codigoAgencia;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID = " + codigoAgencia;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			if (results.next()) {
-				agenciaRetornar = new Agencia(results.getInt(1), results.getString(3), results.getInt(4),
-						retrieveMoradaById(results.getInt(5), false));
+
+				Cliente[] clientesAgencia = retrieveClientesByAgencia(
+						results.getInt(1), false);
+
+				agenciaRetornar = new Agencia(results.getInt(1),
+						results.getString(3), results.getInt(4),
+						retrieveMoradaById(results.getInt(5), false),
+						clientesAgencia);
 			}
 
 			stmt.close();
@@ -226,7 +351,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static Agencia retrieveAgenciaByClienteId(int codigoCliente, boolean criarConexao) {
+	public static Agencia retrieveAgenciaByClienteId(int codigoCliente,
+			boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -239,7 +365,8 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT ID_AGENCIA FROM " + tableName.toUpperCase() + " WHERE ID = " + codigoCliente;
+			String instruction = "SELECT ID_AGENCIA FROM "
+					+ tableName.toUpperCase() + " WHERE ID = " + codigoCliente;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -263,7 +390,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static int retrieveMorada(String rua, String localidade, String codigoPostal, String pais) {
+	public static int retrieveMorada(String rua, String localidade,
+			String codigoPostal, String pais) {
 
 		createConnection();
 
@@ -275,9 +403,12 @@ public class DatabaseOperations {
 
 			int numeroMoradas = 0;
 
-			ResultSet results = stmt.executeQuery("SELECT * FROM " + tableName.toUpperCase() + " WHERE RUA='"
-					+ rua.toUpperCase() + "' AND LOCALIDADE='" + localidade.toUpperCase() + "' AND CODIPO_POSTAL='"
-					+ codigoPostal.toUpperCase() + "' AND PAIS = '" + pais.toUpperCase() + "'");
+			ResultSet results = stmt.executeQuery("SELECT * FROM "
+					+ tableName.toUpperCase() + " WHERE RUA='"
+					+ rua.toUpperCase() + "' AND LOCALIDADE='"
+					+ localidade.toUpperCase() + "' AND CODIPO_POSTAL='"
+					+ codigoPostal.toUpperCase() + "' AND PAIS = '"
+					+ pais.toUpperCase() + "'");
 
 			while (results.next()) {
 				numeroMoradas++;
@@ -286,13 +417,18 @@ public class DatabaseOperations {
 
 			if (numeroMoradas == 0) {
 
-				stmt.execute("INSERT INTO " + tableName + " (RUA, LOCALIDADE, CODIPO_POSTAL, PAIS) values ('"
-						+ rua.toUpperCase() + "','" + localidade.toUpperCase() + "','" + codigoPostal.toUpperCase()
-						+ "','" + pais.toUpperCase() + "')");
+				stmt.execute("INSERT INTO " + tableName
+						+ " (RUA, LOCALIDADE, CODIPO_POSTAL, PAIS) values ('"
+						+ rua.toUpperCase() + "','" + localidade.toUpperCase()
+						+ "','" + codigoPostal.toUpperCase() + "','"
+						+ pais.toUpperCase() + "')");
 
-				results = stmt.executeQuery("SELECT * FROM " + tableName.toUpperCase() + " WHERE RUA='"
-						+ rua.toUpperCase() + "' AND LOCALIDADE='" + localidade.toUpperCase() + "' AND CODIPO_POSTAL='"
-						+ codigoPostal.toUpperCase() + "' AND PAIS = '" + pais.toUpperCase() + "'");
+				results = stmt.executeQuery("SELECT * FROM "
+						+ tableName.toUpperCase() + " WHERE RUA='"
+						+ rua.toUpperCase() + "' AND LOCALIDADE='"
+						+ localidade.toUpperCase() + "' AND CODIPO_POSTAL='"
+						+ codigoPostal.toUpperCase() + "' AND PAIS = '"
+						+ pais.toUpperCase() + "'");
 
 				while (results.next()) {
 					numeroMoradas++;
@@ -313,7 +449,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static Morada retrieveMoradaById(int idMorada, boolean createConnection) {
+	public static Morada retrieveMoradaById(int idMorada,
+			boolean createConnection) {
 
 		if (createConnection) {
 			createConnection();
@@ -326,13 +463,15 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID = " + idMorada;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID = " + idMorada;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			if (results.next()) {
 
-				moradaRetornar = new Morada(results.getString(2), results.getString(3), results.getString(4),
+				moradaRetornar = new Morada(results.getString(2),
+						results.getString(3), results.getString(4),
 						results.getString(5));
 			}
 
@@ -350,7 +489,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static void insertEmail(String tipoEntidade, int idEntidade, String email) {
+	public static void insertEmail(String tipoEntidade, int idEntidade,
+			String email) {
 
 		createConnection();
 
@@ -359,8 +499,10 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName + " ( ID_ENTIDADE, TIPO, EMAIL) values (" + idEntidade
-					+ ", '" + tipoEntidade.toUpperCase() + "', '" + email + "')";
+			String instruction = "INSERT INTO " + tableName
+					+ " ( ID_ENTIDADE, TIPO, EMAIL) values (" + idEntidade
+					+ ", '" + tipoEntidade.toUpperCase() + "', '" + email
+					+ "')";
 
 			stmt.execute(instruction);
 
@@ -371,7 +513,8 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static Email[] retrieveEmails(String tipoEntidade, int idEntidade, boolean criarConexao) {
+	public static Email[] retrieveEmails(String tipoEntidade, int idEntidade,
+			boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -384,14 +527,16 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE TIPO='"
-					+ tipoEntidade.toUpperCase() + "' AND ID_ENTIDADE = " + idEntidade;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE TIPO='" + tipoEntidade.toUpperCase()
+					+ "' AND ID_ENTIDADE = " + idEntidade;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			while (results.next()) {
 
-				emailsRetornar.add(new Email(results.getInt(1), results.getString(4)));
+				emailsRetornar.add(new Email(results.getInt(1), results
+						.getString(4)));
 			}
 
 			stmt.close();
@@ -404,11 +549,12 @@ public class DatabaseOperations {
 			shutdown();
 		}
 
-		return (Email[]) emailsRetornar.toArray(new Email[1]);
+		return (Email[]) emailsRetornar.toArray(new Email[0]);
 
 	}
 
-	public static void insertAgencia(String nome, int idBanco, int nif, int idMorada) {
+	public static void insertAgencia(String nome, int idBanco, int nif,
+			int idMorada) {
 
 		createConnection();
 
@@ -418,7 +564,8 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName + " (ID_BANCO, NOME, NIF, ID_MORADA) values (" + idBanco
+			String instruction = "INSERT INTO " + tableName
+					+ " (ID_BANCO, NOME, NIF, ID_MORADA) values (" + idBanco
 					+ ", '" + nome + "', " + nif + ", " + idMorada + ")";
 
 			stmt.execute(instruction);
@@ -433,7 +580,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static void insertCliente(int idAgencia, String nome, long cartaoCidadao, String profissao, int idMorada,
+	public static void insertCliente(int idAgencia, String nome,
+			long cartaoCidadao, String profissao, int idMorada,
 			String tipoCliente) {
 
 		createConnection();
@@ -443,9 +591,11 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName
-					+ " (ID_AGENCIA, NOME, CARTAO_CIDADAO, PROFISSAO, ID_MORADA) values (" + idAgencia + ", '" + nome
-					+ "'," + cartaoCidadao + ", '" + profissao + "', " + idMorada + ")";
+			String instruction = "INSERT INTO "
+					+ tableName
+					+ " (ID_AGENCIA, NOME, CARTAO_CIDADAO, PROFISSAO, ID_MORADA) values ("
+					+ idAgencia + ", '" + nome + "'," + cartaoCidadao + ", '"
+					+ profissao + "', " + idMorada + ")";
 
 			stmt.execute(instruction);
 
@@ -471,8 +621,8 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE CARTAO_CIDADAO = "
-					+ numeroCartaoCidadao;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE CARTAO_CIDADAO = " + numeroCartaoCidadao;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -482,10 +632,14 @@ public class DatabaseOperations {
 				clienteRetonar.setNome(results.getString(3));
 				clienteRetonar.setNumeroCartaoCidadao(results.getInt(4));
 				clienteRetonar.setProfissao(results.getString(5));
-				clienteRetonar.setMorada(retrieveMoradaById(results.getInt(6), false));
-				clienteRetonar.setEmails(retrieveEmails("Cliente", results.getInt(1), false));
-				clienteRetonar.setContas(retrieveContasCliente(results.getInt(1), false));
-				clienteRetonar.setTelefones(retrieveTelefonesByCliente("CLIENTE", results.getInt(1), false));
+				clienteRetonar.setMorada(retrieveMoradaById(results.getInt(6),
+						false));
+				clienteRetonar.setEmails(retrieveEmails("Cliente",
+						results.getInt(1), false));
+				clienteRetonar.setContas(retrieveContasCliente(
+						results.getInt(1), false));
+				clienteRetonar.setTelefones(retrieveTelefonesByCliente(
+						"CLIENTE", results.getInt(1), false));
 			}
 
 			stmt.close();
@@ -500,9 +654,12 @@ public class DatabaseOperations {
 
 	}
 
-	public static Cliente[] retrieveClientesByAgencia(int numeroAgencia) {
+	public static Cliente[] retrieveClientesByAgencia(int numeroAgencia,
+			boolean criarConexao) {
 
-		createConnection();
+		if (criarConexao) {
+			createConnection();
+		}
 
 		String tableName = "BANCORETALHOSCHEMA.CLIENTES";
 
@@ -512,7 +669,8 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID_AGENCIA = " + numeroAgencia;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_AGENCIA = " + numeroAgencia;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -524,10 +682,14 @@ public class DatabaseOperations {
 				clienteRetornar.setNome(results.getString(3));
 				clienteRetornar.setNumeroCartaoCidadao(results.getInt(4));
 				clienteRetornar.setProfissao(results.getString(5));
-				clienteRetornar.setMorada(retrieveMoradaById(results.getInt(6), false));
-				clienteRetornar.setEmails(retrieveEmails("Cliente", results.getInt(1), false));
-				clienteRetornar.setContas(retrieveContasCliente(results.getInt(1), false));
-				clienteRetornar.setTelefones(retrieveTelefonesByCliente("CLIENTE", results.getInt(1), false));
+				clienteRetornar.setMorada(retrieveMoradaById(results.getInt(6),
+						false));
+				clienteRetornar.setEmails(retrieveEmails("Cliente",
+						results.getInt(1), false));
+				clienteRetornar.setContas(retrieveContasCliente(
+						results.getInt(1), false));
+				clienteRetornar.setTelefones(retrieveTelefonesByCliente(
+						"CLIENTE", results.getInt(1), false));
 
 				clientesRetonar.add(clienteRetornar);
 			}
@@ -538,9 +700,11 @@ public class DatabaseOperations {
 			sqlExcept.printStackTrace();
 		}
 
-		shutdown();
+		if (criarConexao) {
+			shutdown();
+		}
 
-		return (Cliente[]) clientesRetonar.toArray(new Cliente[1]);
+		return (Cliente[]) clientesRetonar.toArray(new Cliente[0]);
 
 	}
 
@@ -553,8 +717,10 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName + " ( ID_CLIENTE, TIPO, DATA_ABERTURA) values (" + idCliente
-					+ ", '" + tipo.toUpperCase() + "', " + dataAbertura + ")";
+			String instruction = "INSERT INTO " + tableName
+					+ " ( ID_CLIENTE, TIPO, DATA_ABERTURA) values ("
+					+ idCliente + ", '" + tipo.toUpperCase() + "', "
+					+ dataAbertura + ")";
 
 			stmt.execute(instruction);
 
@@ -565,7 +731,8 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static Conta[] retrieveContasCliente(int numeroCliente, boolean criarConexao) {
+	public static Conta[] retrieveContasCliente(int numeroCliente,
+			boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -579,7 +746,8 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID_CLIENTE = " + numeroCliente;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_CLIENTE = " + numeroCliente;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -590,9 +758,12 @@ public class DatabaseOperations {
 				int month = (value % 10000) / 100;
 				int day = value % 100;
 
-				Conta novaConta = new Conta(results.getLong(1), retrieveCartoesByConta(results.getInt(1), false),
-						results.getString(3), retrieveMovimentosConta(results.getInt(1), false),
-						retrieveSaldoConta(results.getInt(1), false), LocalDate.of(year, month, day));
+				Conta novaConta = new Conta(results.getLong(1),
+						retrieveCartoesByConta(results.getInt(1), false),
+						results.getString(3), retrieveMovimentosConta(
+								results.getInt(1), false), retrieveSaldoConta(
+								results.getInt(1), false), LocalDate.of(year,
+								month, day));
 
 				listaContas.add(novaConta);
 
@@ -608,7 +779,7 @@ public class DatabaseOperations {
 			shutdown();
 		}
 
-		return (Conta[]) listaContas.toArray(new Conta[1]);
+		return (Conta[]) listaContas.toArray(new Conta[0]);
 
 	}
 
@@ -624,8 +795,9 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID_CLIENTE = " + numeroCliente
-					+ " AND TIPO = '" + Conta.CONST_CONTA_ORDEM + "'";
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_CLIENTE = " + numeroCliente + " AND TIPO = '"
+					+ Conta.CONST_CONTA_ORDEM + "'";
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -636,9 +808,12 @@ public class DatabaseOperations {
 				int month = (value % 10000) / 100;
 				int day = value % 100;
 
-				contaRetornar = new Conta(results.getLong(1), retrieveCartoesByConta(results.getInt(1), false),
-						results.getString(3), retrieveMovimentosConta(results.getInt(1), false),
-						retrieveSaldoConta(results.getInt(1), false), LocalDate.of(year, month, day));
+				contaRetornar = new Conta(results.getLong(1),
+						retrieveCartoesByConta(results.getInt(1), false),
+						results.getString(3), retrieveMovimentosConta(
+								results.getInt(1), false), retrieveSaldoConta(
+								results.getInt(1), false), LocalDate.of(year,
+								month, day));
 
 			}
 
@@ -668,7 +843,8 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID = " + numeroConta;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID = " + numeroConta;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -679,9 +855,12 @@ public class DatabaseOperations {
 				int month = (value % 10000) / 100;
 				int day = value % 100;
 
-				contaRetornar = new Conta(results.getLong(1), retrieveCartoesByConta(results.getInt(1), false),
-						results.getString(3), retrieveMovimentosConta(results.getInt(1), false),
-						retrieveSaldoConta(results.getInt(1), false), LocalDate.of(year, month, day));
+				contaRetornar = new Conta(results.getLong(1),
+						retrieveCartoesByConta(results.getInt(1), false),
+						results.getString(3), retrieveMovimentosConta(
+								results.getInt(1), false), retrieveSaldoConta(
+								results.getInt(1), false), LocalDate.of(year,
+								month, day));
 
 			}
 
@@ -699,7 +878,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static Cartao[] retrieveCartoesByConta(int numeroConta, boolean criarConexao) {
+	public static Cartao[] retrieveCartoesByConta(int numeroConta,
+			boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -713,13 +893,16 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID_CONTA = " + numeroConta;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_CONTA = " + numeroConta;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			while (results.next()) {
 
-				Cartao novoCartao = new Cartao(results.getInt(1), results.getString(3));
+				Cartao novoCartao = new Cartao(results.getInt(1),
+						results.getString(3), results.getInt(4),
+						results.getInt(5));
 				listaCartoes.add(novoCartao);
 			}
 
@@ -733,7 +916,7 @@ public class DatabaseOperations {
 			shutdown();
 		}
 
-		return (Cartao[]) listaCartoes.toArray(new Cartao[1]);
+		return (Cartao[]) listaCartoes.toArray(new Cartao[0]);
 
 	}
 
@@ -753,13 +936,16 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID = " + idCartao;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID = " + idCartao;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			if (results.next()) {
 
-				novoCartao = new Cartao(results.getInt(1), results.getString(3));
+				novoCartao = new Cartao(results.getInt(1),
+						results.getString(3), results.getInt(4),
+						results.getInt(5));
 				listaCartoes.add(novoCartao);
 			}
 
@@ -777,7 +963,8 @@ public class DatabaseOperations {
 
 	}
 
-	public static Telefone[] retrieveTelefonesByCliente(String tipoEntidade, int idEntidade, boolean criarConexao) {
+	public static Telefone[] retrieveTelefonesByCliente(String tipoEntidade,
+			int idEntidade, boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -791,14 +978,16 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT ID, NUMERO FROM " + tableName.toUpperCase() + " WHERE TIPOENTIDADE = '"
+			String instruction = "SELECT ID, NUMERO FROM "
+					+ tableName.toUpperCase() + " WHERE TIPOENTIDADE = '"
 					+ tipoEntidade + "' AND ID_ENTIDADE = " + idEntidade;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
 			while (results.next()) {
 
-				Telefone novoTelefone = new Telefone(results.getInt(1), results.getInt(2));
+				Telefone novoTelefone = new Telefone(results.getInt(1),
+						results.getInt(2));
 				listaTelefones.add(novoTelefone);
 			}
 
@@ -812,10 +1001,11 @@ public class DatabaseOperations {
 			shutdown();
 		}
 
-		return (Telefone[]) listaTelefones.toArray(new Telefone[1]);
+		return (Telefone[]) listaTelefones.toArray(new Telefone[0]);
 	}
 
-	public static void insertCartao(long idConta, String tipo) {
+	public static void insertCartao(long idConta, String tipo, int plafond,
+			int valorPlafond) {
 
 		createConnection();
 
@@ -824,8 +1014,10 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName + " ( ID_CONTA, TIPO) values (" + idConta + ", '"
-					+ tipo.toUpperCase() + "')";
+			String instruction = "INSERT INTO " + tableName
+					+ " ( ID_CONTA, TIPO, PLAFOND, VALOR_PLAFOND) values ("
+					+ idConta + ", '" + tipo.toUpperCase() + "', " + plafond
+					+ ", " + valorPlafond + ")";
 
 			stmt.execute(instruction);
 
@@ -836,7 +1028,8 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static void insertMovimento(long idConta, long idCartao, String tipo, long valor) {
+	public static void insertMovimento(long idConta, long idCartao,
+			String tipo, long valor) {
 
 		createConnection();
 
@@ -845,15 +1038,19 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			int data = LocalDate.now().getYear() * 10000 + LocalDate.now().getMonthValue() * 100
+			int data = LocalDate.now().getYear() * 10000
+					+ LocalDate.now().getMonthValue() * 100
 					+ LocalDate.now().getDayOfMonth();
 
-			int hora = LocalTime.now().getHour() * 10000 + LocalTime.now().getMinute() * 100
+			int hora = LocalTime.now().getHour() * 10000
+					+ LocalTime.now().getMinute() * 100
 					+ LocalTime.now().getSecond();
 
-			String instruction = "INSERT INTO " + tableName + " (ID_CONTA, ID_CARTAO, TIPO, VALOR, DATA, HORA) values ("
-					+ idConta + ", " + idCartao + ", '" + tipo.toUpperCase() + "', " + valor + "," + data + "," + hora
-					+ ")";
+			String instruction = "INSERT INTO "
+					+ tableName
+					+ " (ID_CONTA, ID_CARTAO, TIPO, VALOR, DATA, HORA) values ("
+					+ idConta + ", " + idCartao + ", '" + tipo.toUpperCase()
+					+ "', " + valor + "," + data + "," + hora + ")";
 
 			stmt.execute(instruction);
 
@@ -864,7 +1061,8 @@ public class DatabaseOperations {
 		shutdown();
 	}
 
-	public static Movimento[] retrieveMovimentosConta(long numeroConta, boolean criarConexao) {
+	public static Movimento[] retrieveMovimentosConta(long numeroConta,
+			boolean criarConexao) {
 
 		if (criarConexao) {
 			createConnection();
@@ -878,7 +1076,8 @@ public class DatabaseOperations {
 
 			stmt = conn.createStatement();
 
-			String instruction = "SELECT * FROM " + tableName.toUpperCase() + " WHERE ID_CONTA = " + numeroConta;
+			String instruction = "SELECT * FROM " + tableName.toUpperCase()
+					+ " WHERE ID_CONTA = " + numeroConta;
 
 			ResultSet results = stmt.executeQuery(instruction);
 
@@ -896,32 +1095,40 @@ public class DatabaseOperations {
 
 				if (results.getString(4).equals("LEVANTAMENTO")) {
 
-					Levantamento novoLevantamento = new Levantamento(LocalDate.of(year, month, day),
-							LocalTime.of(hour, minute, second), retrieveCartaoById(results.getInt(3), false),
+					Levantamento novoLevantamento = new Levantamento(
+							LocalDate.of(year, month, day), LocalTime.of(hour,
+									minute, second), retrieveCartaoById(
+									results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novoLevantamento);
 
 				} else if (results.getString(4).equals("DEPOSITO")) {
 
-					Deposito novoDeposito = new Deposito(LocalDate.of(year, month, day),
-							LocalTime.of(hour, minute, second), retrieveCartaoById(results.getInt(3), false),
+					Deposito novoDeposito = new Deposito(LocalDate.of(year,
+							month, day), LocalTime.of(hour, minute, second),
+							retrieveCartaoById(results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novoDeposito);
 
 				} else if (results.getString(4).equals("TRANSFERENCIA")) {
 
-					Transferencia novaTransferencia = new Transferencia(LocalDate.of(year, month, day),
-							LocalTime.of(hour, minute, second), retrieveCartaoById(results.getInt(3), false),
+					Transferencia novaTransferencia = new Transferencia(
+							LocalDate.of(year, month, day), LocalTime.of(hour,
+									minute, second), retrieveCartaoById(
+									results.getInt(3), false),
 							results.getInt(7));
 
 					listaMovimentos.add(novaTransferencia);
 
 				} else if (results.getString(4).equals("JUROS")) {
 
-					Juros novosJuros = new Juros(LocalDate.of(year, month, day), LocalTime.of(hour, minute, second),
-							retrieveCartaoById(results.getInt(3), false), results.getInt(7));
+					Juros novosJuros = new Juros(
+							LocalDate.of(year, month, day), LocalTime.of(hour,
+									minute, second), retrieveCartaoById(
+									results.getInt(3), false),
+							results.getInt(7));
 
 					listaMovimentos.add(novosJuros);
 				}
@@ -938,7 +1145,7 @@ public class DatabaseOperations {
 			shutdown();
 		}
 
-		return (Movimento[]) listaMovimentos.toArray(new Movimento[1]);
+		return (Movimento[]) listaMovimentos.toArray(new Movimento[0]);
 
 	}
 
@@ -955,7 +1162,8 @@ public class DatabaseOperations {
 		try {
 
 			stmt = conn.createStatement();
-			String instruction = "SELECT TIPO, VALOR FROM " + tableName.toUpperCase() + " WHERE ID_CONTA = "
+			String instruction = "SELECT TIPO, VALOR FROM "
+					+ tableName.toUpperCase() + " WHERE ID_CONTA = "
 					+ numeroConta;
 
 			ResultSet results = stmt.executeQuery(instruction);
@@ -977,7 +1185,8 @@ public class DatabaseOperations {
 		return saldo;
 	}
 
-	public static void insertTelefone(String tipoEntidade, int idEntidade, int numero) {
+	public static void insertTelefone(String tipoEntidade, int idEntidade,
+			int numero) {
 
 		createConnection();
 
@@ -986,7 +1195,8 @@ public class DatabaseOperations {
 		try {
 			stmt = conn.createStatement();
 
-			String instruction = "INSERT INTO " + tableName + " (TIPOENTIDADE, ID_ENTIDADE, NUMERO) values ('"
+			String instruction = "INSERT INTO " + tableName
+					+ " (TIPOENTIDADE, ID_ENTIDADE, NUMERO) values ('"
 					+ tipoEntidade + "', " + idEntidade + ", " + numero + ")";
 
 			stmt.execute(instruction);
@@ -1000,8 +1210,8 @@ public class DatabaseOperations {
 
 	private static void createConnection() {
 		try {
-			// Class.forName("org.apache.derby.jdbc.ClientDriver").newInstance();
-			Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+			Class.forName(JDBC_DRIVER).newInstance();
+			// Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
 			// Get a connection
 			conn = DriverManager.getConnection(DB_URL);
 		} catch (Exception except) {

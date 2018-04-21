@@ -11,6 +11,7 @@ import com.rumos.bancoretalho.exceptions.ClienteException;
 import com.rumos.bancoretalho.exceptions.ContaException;
 import com.rumos.bancoretalho.exceptions.EmailException;
 import com.rumos.bancoretalho.exceptions.MoradaException;
+import com.rumos.bancoretalho.exceptions.PlafondException;
 import com.rumos.bancoretalho.exceptions.TelefoneException;
 
 public class Agencia {
@@ -28,11 +29,13 @@ public class Agencia {
 		this.nif = 0;
 	}
 
-	public Agencia(int numero, String nome, int nif, Morada morada) {
+	public Agencia(int numero, String nome, int nif, Morada morada,
+			Cliente[] clientes) {
 		this.numero = numero;
 		this.nome = nome;
 		this.morada = morada;
 		this.nif = nif;
+		this.clientes = clientes;
 	}
 
 	public int getNumero() {
@@ -75,24 +78,30 @@ public class Agencia {
 		this.clientes = clientes;
 	}
 
-	public void criarCliente(String tipoCliente, String nome, int numeroCartaoCidadao, String rua, String localidade,
-			String codigoPostal, String pais, String profissao, int telefone, String email) throws ClienteException,
-			MoradaException, EmailException, TelefoneException, ContaException, CartaoException {
+	public void criarCliente(String tipoCliente, String nome,
+			int numeroCartaoCidadao, String rua, String localidade,
+			String codigoPostal, String pais, String profissao, int telefone,
+			String email) throws ClienteException, MoradaException,
+			EmailException, TelefoneException, ContaException, CartaoException {
 
 		// - Validar se já existe pessoa com o cartão de cidadao na base de
 		// dados
 
 		Cliente novoCliente = new Cliente();
 
-		Morada moradaNovoCliente = new Morada(rua, localidade, codigoPostal, pais);
+		Morada moradaNovoCliente = new Morada(rua, localidade, codigoPostal,
+				pais);
 
 		if (!novoCliente.getClienteByCartaoCidadao(numeroCartaoCidadao)) {
 
-			if (DatabaseOperations.retrieveMorada(rua, localidade, codigoPostal, pais) == 0) {
+			if (DatabaseOperations.retrieveMorada(rua, localidade,
+					codigoPostal, pais) == 0) {
 
 				// Guardar a nova morada na base de dados!
-				if (!DatabaseOperations.insertMorada(rua, localidade, codigoPostal, pais)) {
-					throw new MoradaException("Não foi possível guardar a morada do cliente!");
+				if (!DatabaseOperations.insertMorada(rua, localidade,
+						codigoPostal, pais)) {
+					throw new MoradaException(
+							"Não foi possível guardar a morada do cliente!");
 				}
 			}
 
@@ -100,15 +109,19 @@ public class Agencia {
 
 			Email emailNovoCliente = new Email(email);
 
-			novoCliente = new Cliente(nome, numeroCartaoCidadao, profissao, tipoCliente, moradaNovoCliente,
-					telefoneCliente, emailNovoCliente);
+			novoCliente = new Cliente(nome, numeroCartaoCidadao, profissao,
+					tipoCliente, moradaNovoCliente, telefoneCliente,
+					emailNovoCliente);
 
-			DatabaseOperations.insertCliente(getNumero(), nome, numeroCartaoCidadao, profissao,
-					moradaNovoCliente.getId(), tipoCliente);
+			DatabaseOperations.insertCliente(getNumero(), nome,
+					numeroCartaoCidadao, profissao, moradaNovoCliente.getId(),
+					tipoCliente);
 
-			Cliente cliente = DatabaseOperations.retrieveClienteByCC(numeroCartaoCidadao);
+			Cliente cliente = DatabaseOperations
+					.retrieveClienteByCC(numeroCartaoCidadao);
 
-			DatabaseOperations.insertTelefone("CLIENTE", cliente.getId(), telefone);
+			DatabaseOperations.insertTelefone("CLIENTE", cliente.getId(),
+					telefone);
 
 			DatabaseOperations.insertEmail("CLIENTE", cliente.getId(), email);
 
@@ -116,77 +129,169 @@ public class Agencia {
 			int mes = LocalDate.now().getMonthValue();
 			int dia = LocalDate.now().getDayOfMonth();
 
-			DatabaseOperations.insertConta(cliente.getId(), Conta.CONST_CONTA_ORDEM, ano * 10000 + mes * 100 + dia);
-			Conta contaCliente = DatabaseOperations.retrieveContaOrdemCliente(cliente.getId());
-			criarCartao(contaCliente, Cartao.CONST_CARTAO_DEBITO);
+			DatabaseOperations.insertConta(cliente.getId(),
+					Conta.CONST_CONTA_ORDEM, ano * 10000 + mes * 100 + dia);
+			Conta contaCliente = DatabaseOperations
+					.retrieveContaOrdemCliente(cliente.getId());
+			criarCartao(contaCliente, Cartao.CONST_CARTAO_DEBITO, 0, 0);
 
 		} else {
-			throw new ClienteException("Já existe um cliente com o mesmo cartao de cidadao!");
+			throw new ClienteException(
+					"Já existe um cliente com o mesmo cartao de cidadao!");
 		}
 
 	}
 
-	public void criarCartao(Conta contaCliente, String tipo) throws ContaException, CartaoException {
+	public void criarCartao(Conta contaCliente, String tipo, int plafond,
+			int valorPlafond) throws ContaException, CartaoException {
 
-		ArrayList<Cartao> cartaoList = new ArrayList<Cartao>(Arrays.asList(contaCliente.getCartoes()));
-		
+		ArrayList<Cartao> cartaoList = new ArrayList<Cartao>(
+				Arrays.asList(contaCliente.getCartoes()));
+
 		if (tipo.equals(Cartao.CONST_CARTAO_DEBITO)) {
 
 			for (int i = 0; i < cartaoList.size(); i++) {
-				if (cartaoList.get(i).getTipo().equals(Cartao.CONST_CARTAO_DEBITO)) {
-					throw new CartaoException("O cliente já tem um cartão de débito");
+				if (cartaoList.get(i).getTipo()
+						.equals(Cartao.CONST_CARTAO_DEBITO)) {
+					throw new CartaoException(
+							"O cliente já tem um cartão de débito");
 				}
 			}
 		}
-					
-		DatabaseOperations.insertCartao(contaCliente.getNumero() ,tipo);
+
+		DatabaseOperations.insertCartao(contaCliente.getNumero(), tipo,
+				plafond, valorPlafond);
 
 		Cartao novoCartao = new Cartao(tipo);
 		cartaoList.add(novoCartao);
 
-		contaCliente.setCartoes((Cartao[]) cartaoList.toArray());
+		contaCliente.setCartoes((Cartao[]) cartaoList.toArray(new Cartao[0]));
 
 	}
 
-	public void criarMovimento(Conta contaCliente, Cartao cartaoCliente, String tipo, long valor, Conta contaDestino)
-			throws ContaException, CartaoException {
+	public void criarMovimento(Conta contaCliente, Cartao cartaoCliente,
+			String tipo, long valor, Conta contaDestino) throws ContaException,
+			CartaoException, PlafondException {
 
 		if (tipo.equals(Movimento.CONST_TRANSFERENCIA)) {
 
 			if (contaCliente.getSaldo() < valor) {
-				throw new ContaException("O seu saldo não é suficiente para processar o movimento");
+				throw new ContaException(
+						"O seu saldo não é suficiente para processar o movimento");
 			} else {
-				Transferencia novaTransferencia = new Transferencia(LocalDate.now(), LocalTime.now(), cartaoCliente,
-						valor*-1);
+				Transferencia novaTransferencia = new Transferencia(
+						LocalDate.now(), LocalTime.now(), cartaoCliente, valor
+								* -1);
 				contaCliente.setSaldo(contaCliente.getSaldo() - valor);
 				contaCliente.addMovimento(novaTransferencia);
-				novaTransferencia.setValor(valor*-1);
+				novaTransferencia.setValor(valor);
 				contaDestino.setSaldo(contaDestino.getSaldo() + valor);
 				contaDestino.addMovimento(novaTransferencia);
 			}
 
 		} else if (tipo.equals(Movimento.CONST_LEVANTAMENTO)) {
 
-			if (contaCliente.getSaldo() < valor) {
-				throw new ContaException("O seu saldo não é suficiente para processar o movimento");
+			if (cartaoCliente.getTipo().equals(Cartao.CONST_CARTAO_DEBITO)) {
+
+				if (contaCliente.getSaldo() < valor) {
+					throw new ContaException(
+							"O seu saldo não é suficiente para processar o movimento");
+				} else {
+					Levantamento novoLevantamwnto = new Levantamento(
+							LocalDate.now(), LocalTime.now(), cartaoCliente,
+							valor * -1);
+					contaCliente.setSaldo(contaCliente.getSaldo() - valor);
+					contaCliente.addMovimento(novoLevantamwnto);
+				}
+
 			} else {
-				Levantamento novoLevantamwnto = new Levantamento(LocalDate.now(), LocalTime.now(), cartaoCliente,
-						valor * -1);
-				contaCliente.setSaldo(contaCliente.getSaldo() - valor);
-				contaCliente.addMovimento(novoLevantamwnto);
+
+				long valorSaldo = contaCliente.getSaldo();
+
+				int valorPlafond = cartaoCliente.getValorPlafond();
+
+				long valorDisponivel = valorSaldo + valorPlafond;
+
+				if (valorDisponivel < valor) {
+					throw new ContaException(
+							"O seu saldo não é suficiente para processar o movimento");
+				} else {
+
+					if (valor > valorPlafond) {
+						valor = valor - valorPlafond;
+						valorPlafond = 0;
+						valorSaldo = valorSaldo - valor;
+
+						contaCliente.setSaldo(valorSaldo);
+						Levantamento novoLevantamwnto = new Levantamento(
+								LocalDate.now(), LocalTime.now(),
+								cartaoCliente, valorSaldo * -1);
+						contaCliente.addMovimento(novoLevantamwnto);
+
+						cartaoCliente.setValorPlafond(valorPlafond);
+						DatabaseOperations.updatePlafondCartao(cartaoCliente,
+								true);
+
+					} else {
+
+						valorPlafond = valorPlafond - (int) valor;
+						cartaoCliente.setValorPlafond(valorPlafond);
+						DatabaseOperations.updatePlafondCartao(cartaoCliente,
+								true);
+					}
+
+				}
+
 			}
 
 		} else if (tipo.equals(Movimento.CONST_DEPOSITO)) {
 
-			Deposito novoDeposito = new Deposito(LocalDate.now(), LocalTime.now(), cartaoCliente, valor);
+			Deposito novoDeposito = new Deposito(LocalDate.now(),
+					LocalTime.now(), cartaoCliente, valor);
 			contaCliente.setSaldo(contaCliente.getSaldo() + valor);
 			contaCliente.addMovimento(novoDeposito);
 
 		} else if (tipo.equals(Movimento.CONST_JUROS)) {
 
-			Juros novosJuros = new Juros(LocalDate.now(), LocalTime.now(), cartaoCliente, valor);
+			Juros novosJuros = new Juros(LocalDate.now(), LocalTime.now(),
+					cartaoCliente, valor);
 			contaCliente.setSaldo(contaCliente.getSaldo() + valor);
 			contaCliente.addMovimento(novosJuros);
+
+		} else if (tipo.equals(Movimento.CONST_ATUALIZACAO)) {
+
+			if (contaCliente.getSaldo() < valor) {
+
+				if (contaCliente.getSaldo() > 0) {
+					
+					int valorPlafond = (int) valor
+							- (int) contaCliente.getSaldo();
+					cartaoCliente.setValorPlafond(valorPlafond);
+					DatabaseOperations.updatePlafondCartao(cartaoCliente, true);
+
+					Levantamento novoLevantamwnto = new Levantamento(
+							LocalDate.now(), LocalTime.now(), cartaoCliente,
+							contaCliente.getSaldo() * -1);
+					contaCliente.setSaldo(0);
+					contaCliente.addMovimento(novoLevantamwnto);
+
+
+
+				} else {
+					throw new PlafondException("Não tem dinheiro para atualizar o plafond");
+				}
+
+			} else {
+				Levantamento novoLevantamwnto = new Levantamento(
+						LocalDate.now(), LocalTime.now(), cartaoCliente, valor
+								* -1);
+				contaCliente.setSaldo(contaCliente.getSaldo() - valor);
+				contaCliente.addMovimento(novoLevantamwnto);
+
+				int valorPlafond = cartaoCliente.getPlafond();
+				cartaoCliente.setValorPlafond(valorPlafond);
+				DatabaseOperations.updatePlafondCartao(cartaoCliente, true);
+			}
 
 		}
 

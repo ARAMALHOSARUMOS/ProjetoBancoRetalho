@@ -109,7 +109,13 @@ public class Conta {
 			tipoMovimento = "Juros";
 		}
 		
-		DatabaseOperations.insertMovimento(getNumero(), novoMovimento.getCartao().getNumero(), tipoMovimento, novoMovimento.getValor());
+		long numeroCartao = 0;
+		
+		if (novoMovimento.getCartao()!=null){
+			numeroCartao = novoMovimento.getCartao().getNumero();
+		}
+		
+		DatabaseOperations.insertMovimento(getNumero(), numeroCartao, tipoMovimento, novoMovimento.getValor());
 		
 		setMovimentos((Movimento[]) listaMovimento.toArray(new Movimento[1]));
 	}
