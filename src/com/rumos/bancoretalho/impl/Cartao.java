@@ -1,7 +1,5 @@
 package com.rumos.bancoretalho.impl;
 
-import com.rumos.bancoretalho.db.DatabaseOperations;
-import com.rumos.bancoretalho.exceptions.CartaoException;
 
 public class Cartao {
 	
@@ -10,6 +8,8 @@ public class Cartao {
 	
 	private int numero;
 	private String tipo;
+	private int plafond;
+	private int valorPlafond;
 	
 	public Cartao(){
 		numero = 0;
@@ -25,10 +25,12 @@ public class Cartao {
 		
 	}
 
-	public Cartao(int numero, String tipo) {
+	public Cartao(int numero, String tipo, int plafond, int valorPlafond) {
 		super();
 		this.numero = numero;
 		this.tipo = tipo;
+		this.plafond = plafond;
+		this.valorPlafond = valorPlafond;
 	}
 
 	public int getNumero() {
@@ -47,10 +49,20 @@ public class Cartao {
 		this.tipo = tipo;
 	}
 		
-	public boolean saveDB() throws CartaoException {
-		//TODO guardar na base de dados!
-		
-		return true;
+	public int getPlafond() {
+		return plafond;
+	}
+
+	public void setPlafond(int plafond) {
+		this.plafond = plafond;
+	}
+
+	public int getValorPlafond() {
+		return valorPlafond;
+	}
+
+	public void setValorPlafond(int valorPlafond) {
+		this.valorPlafond = valorPlafond;
 	}
 
 }

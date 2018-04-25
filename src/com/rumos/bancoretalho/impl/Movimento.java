@@ -10,6 +10,7 @@ public abstract class Movimento {
 	public static final String CONST_LEVANTAMENTO = "Levantamento";
 	public static final String CONST_DEPOSITO = "Deposito";
 	public static final String CONST_JUROS = "Juros";
+	public static final String CONST_ATUALIZACAO = "Atualizacao";
 	
 	private LocalDate data;
 	private LocalTime hora;
