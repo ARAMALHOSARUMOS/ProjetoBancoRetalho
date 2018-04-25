@@ -1,5 +1,9 @@
 package com.rumos.bancoretalho.impl;
 
+<<<<<<< HEAD
+=======
+import com.rumos.bancoretalho.exceptions.CartaoException;
+>>>>>>> 7e7066a68d3609deee76fedb2f6ad00138aa0fa9
 
 public class Cartao {
 	
@@ -63,6 +67,15 @@ public class Cartao {
 
 	public void setValorPlafond(int valorPlafond) {
 		this.valorPlafond = valorPlafond;
+<<<<<<< HEAD
+=======
+	}
+
+	public boolean saveDB() throws CartaoException {
+		//TODO guardar na base de dados!
+		
+		return true;
+>>>>>>> 7e7066a68d3609deee76fedb2f6ad00138aa0fa9
 	}
 
 }
